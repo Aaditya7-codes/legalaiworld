@@ -84,14 +84,16 @@ AFFILIATE_NOTE = (
 
 
 def fetch(slug: str) -> tuple[dict, str]:
-    api_url = f"{SITE}/wp-json/wp/v2/posts?slug={slug}"
+    from urllib.parse import quote
+
+    api_url = f"{SITE}/wp-json/wp/v2/posts?slug={quote(slug)}"
     with urlopen(api_url, timeout=30) as resp:
         posts = json.loads(resp.read())
     if not posts:
         raise SystemExit(f"No post found for slug: {slug}")
     post = posts[0]
 
-    page_url = f"{SITE}/{slug}/"
+    page_url = f"{SITE}/{quote(slug)}/"
     with urlopen(page_url, timeout=30) as resp:
         html = resp.read().decode("utf-8")
     return post, html

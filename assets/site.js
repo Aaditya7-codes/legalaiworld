@@ -1,9 +1,9 @@
 (() => {
   const path = window.location.pathname;
   const navItems = [
-    ['/ai-tools/', 'AI Tools'],
-    ['/legal-research/', 'Legal Research'],
-    ['/compliance/', 'Compliance'],
+    ['/category/ai-tools/', 'AI Tools'],
+    ['/category/legal-research/', 'Legal Research'],
+    ['/category/compliance/', 'Compliance'],
     ['/about-us/', 'About']
   ];
 
