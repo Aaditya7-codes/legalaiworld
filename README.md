@@ -42,18 +42,33 @@ the correct URL back into all three places (the visible image, the
 the current live site's social-share previews, not a deviation from it,
 and has no bearing on Google Web-search rankings either way.
 
-## Known issue: one malformed slug
+## Known issue: one malformed slug, served two ways as a hedge
 `law-firm-ai-policy-template-2025-a-2%e2%80%91page-model-you-can-copy/` has a
 pre-existing WordPress bug: its slug (and the canonical URL WordPress itself
 declares) contains the literal characters `%e2%80%91` rather than an actual
-Unicode non-breaking hyphen. This is not something introduced by the
-migration — WordPress's own REST API and `<link rel="canonical">` both
-serve this exact malformed string, so it's what Google has indexed. The
-directory here matches it exactly. Confirm this resolves correctly once
-served by GitHub Pages before cutover (a local `python -m http.server`
-test 404s on it because it decodes the request path differently than
-whatever server stack is behind GitHub Pages / the original WordPress
-site — needs a live check, not just a local one).
+Unicode non-breaking hyphen. Google has indexed that exact literal string
+(it's what WP's own `<link rel="canonical">` declares), so the canonical
+tag, JSON-LD, and every internal link here keep using it as-is.
+
+But the audit script caught a real problem with that: a standard web
+server decodes `%XX` sequences in the request path before looking up a
+file, so a browser/crawler requesting that URL will actually look for a
+directory containing the literal Unicode hyphen (`‑`), not the literal
+percent-encoded string. Both directories exist here with identical
+content as a hedge — `law-firm-ai-policy-template-2025-a-2‑page-model-you-can-copy/`
+is a compatibility duplicate, excluded from the sitemap and from
+`audit_site.py`'s page count (see `EXCLUDE_ROUTES` in both scripts) so
+it isn't treated as a second real page. Confirm which variant GitHub
+Pages actually resolves before cutover, and drop the other one.
+
+## CI
+`.github/workflows/site-audit.yml` runs `scripts/audit_site.py` on every
+push/PR to `main` — checks every page has a doctype, meta description,
+and matching canonical; every internal link and asset resolves; the
+sitemap matches what's actually on disk; and every article's JSON-LD has
+a `BlogPosting` node with `author`/`image`/`publisher`/`articleSection`.
+Run `python scripts/generate_sitemap.py` before it if pages were added
+or removed, since the audit checks sitemap-vs-disk consistency.
 
 ## Not yet done / open questions
 - On-site search (present in WP nav) not yet replicated.
@@ -63,7 +78,5 @@ site — needs a live check, not just a local one).
   GitHub Pages, but worth compressing before cutover for page-speed.
 - Tag archive pages (10 of them) intentionally not rebuilt — low-value,
   single-post tag pages not worth recreating.
-- No automated link/sitemap audit yet (Cosmos has `audit_site.py` for
-  this — worth porting over before cutover).
 
 Custom domain: legalaiworld.com (not yet pointed here — still on Hostinger/WordPress).

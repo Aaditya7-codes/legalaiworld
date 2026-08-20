@@ -156,6 +156,7 @@ HOME_TEMPLATE = """<!doctype html>
 <div class="eyebrow">LegalAIWorld</div>
 <h1>Your Guide to AI in Law</h1>
 <p class="meta">Practical, no-hype coverage of AI tools for lawyers &mdash; legal AI chatbots, contract review software, compliance guidance, and legal research.</p>
+<p class="meta">Browse: <a href="/category/ai-tools/">AI Tools</a> &middot; <a href="/category/legal-research/">Legal Research</a> &middot; <a href="/category/compliance/">Compliance</a></p>
 </section>
 
 <div class="section-head"><h2>Latest Articles</h2></div>
