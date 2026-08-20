@@ -65,6 +65,13 @@ a:hover { text-decoration: underline; }
   padding-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
+.featured-image {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 0 0 28px;
+  display: block;
+}
 .entry-content { font-size: 1.08rem; }
 .entry-content p { margin: 0 0 20px; }
 .entry-content h2 { font-size: 1.5rem; margin: 40px 0 16px; line-height: 1.3; }

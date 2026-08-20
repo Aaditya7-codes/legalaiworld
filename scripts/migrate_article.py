@@ -50,6 +50,7 @@ TEMPLATE = """<!doctype html>
 <div class="article-container">
 <h1>{title}</h1>
 <div class="meta"><span class="eyebrow">{category}</span> &middot; {date}</div>
+{featured_image}
 {disclosure}
 <div class="entry-content">
 {content}
@@ -99,6 +100,26 @@ def fetch(slug: str) -> tuple[dict, str]:
     return post, html
 
 
+FALLBACK_IMAGE_NAME = "cropped-Screenshot-2025-08-15-at-4.15.25-PM.png"
+IMAGES_DIR = ROOT / "assets" / "images"
+
+
+def localize_image(url: str) -> str:
+    """Download a wp-content image (if not already local) and return the
+    self-hosted URL. Leaves non-wp-content URLs untouched."""
+    if "/wp-content/uploads/" not in url:
+        return url
+    filename = url.rsplit("/", 1)[-1]
+    if filename == FALLBACK_IMAGE_NAME:
+        return f"{SITE}/assets/social-fallback.png"
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    local_path = IMAGES_DIR / filename
+    if not local_path.exists():
+        with urlopen(url, timeout=30) as resp:
+            local_path.write_bytes(resp.read())
+    return f"{SITE}/assets/images/{filename}"
+
+
 def extract(post: dict, html: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
     head = html.split("</head>")[0]
@@ -109,13 +130,27 @@ def extract(post: dict, html: str) -> dict:
     canon_match = re.search(r'<link rel="canonical" href="([^"]*)"', head)
     canonical = canon_match.group(1) if canon_match else f"{SITE}/{post['slug']}/"
 
-    og_image_match = re.search(r'<meta property="og:image" content="([^"]*)"', head)
-    image = og_image_match.group(1) if og_image_match else ""
+    # The real per-article featured image lives in .entry-header's post
+    # thumbnail, not the <meta og:image> tag -- AIOSEO's og:image often
+    # falls back to the site logo even when a real featured image is set,
+    # so og:image alone is not a reliable source.
+    thumb_img = soup.select_one(".entry-header .post-thumb-img-content img")
+    if thumb_img and thumb_img.get("src"):
+        raw_image = re.sub(r"-\d+x\d+(?=\.\w+$)", "", thumb_img["src"])  # strip WP size suffix
+    else:
+        og_image_match = re.search(r'<meta property="og:image" content="([^"]*)"', head)
+        raw_image = og_image_match.group(1) if og_image_match else ""
+    is_fallback = (not raw_image) or raw_image.rsplit("/", 1)[-1] == FALLBACK_IMAGE_NAME
+    image = localize_image(raw_image) if raw_image else ""
 
     ld_match = re.search(
         r'<script type="application/ld\+json"[^>]*>(.*?)</script>', html, re.S
     )
     jsonld_raw = ld_match.group(1).strip() if ld_match else "{}"
+    # Rewrite any wp-content image URLs embedded in the JSON-LD (escaped-slash form)
+    for wp_url in set(re.findall(r'https:\\/\\/legalaiworld\.com\\/wp-content\\/uploads\\/[^"\s]*?\.(?:png|jpg|jpeg|webp|gif)', jsonld_raw)):
+        localized = localize_image(wp_url.replace("\\/", "/")).replace("/", "\\/")
+        jsonld_raw = jsonld_raw.replace(wp_url, localized)
 
     content_el = soup.find(class_="entry-content")
     content_html = str(content_el) if content_el else ""
@@ -134,6 +169,7 @@ def extract(post: dict, html: str) -> dict:
         "description": description.replace('"', "&quot;"),
         "canonical": canonical,
         "image": image,
+        "is_fallback": is_fallback,
         "jsonld": jsonld_raw,
         "content": inner,
         "category": category,
@@ -142,6 +178,16 @@ def extract(post: dict, html: str) -> dict:
 
 
 def render(data: dict, affiliate: bool) -> str:
+    featured_image = ""
+    if data["image"] and not data["is_fallback"]:
+        # Root-relative so it resolves under any host (local preview or
+        # production); og:image/JSON-LD keep the absolute SITE URL since
+        # those are read by external crawlers, not the browser.
+        image_path = data["image"].replace(SITE, "", 1)
+        featured_image = (
+            f'<img class="featured-image" src="{image_path}" '
+            f'alt="{data["title"]}" loading="lazy">'
+        )
     return TEMPLATE.format(
         title=data["title"],
         description=data["description"],
@@ -151,6 +197,7 @@ def render(data: dict, affiliate: bool) -> str:
         content=data["content"],
         category=data["category"],
         date=data["date"],
+        featured_image=featured_image,
         disclosure=AFFILIATE_NOTE if affiliate else "",
     )
 
