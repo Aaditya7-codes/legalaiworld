@@ -58,8 +58,16 @@ percent-encoded string. Both directories exist here with identical
 content as a hedge — `law-firm-ai-policy-template-2025-a-2‑page-model-you-can-copy/`
 is a compatibility duplicate, excluded from the sitemap and from
 `audit_site.py`'s page count (see `EXCLUDE_ROUTES` in both scripts) so
-it isn't treated as a second real page. Confirm which variant GitHub
-Pages actually resolves before cutover, and drop the other one.
+it isn't treated as a second real page.
+
+**Verified live against GitHub Pages (2026-08-20):** temporarily removed
+`CNAME`, pushed, and curled the raw `aaditya7-codes.github.io/legalaiworld/`
+URL directly. Both the percent-encoded and the decoded-Unicode variant
+resolve with HTTP 200 and the correct article title — so the hedge
+works and either form of the URL will serve real content once cut over.
+Also spot-checked the homepage, a normal article, a category page, a
+self-hosted image, and `sitemap.xml` — all 200. `CNAME` restored
+immediately after.
 
 ## CI
 `.github/workflows/site-audit.yml` runs `scripts/audit_site.py` on every
