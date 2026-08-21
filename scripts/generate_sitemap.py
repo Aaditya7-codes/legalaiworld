@@ -8,10 +8,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://legalaiworld.com"
 EXCLUDE_DIRS = {"assets", "scripts", ".git"}
-# Was used to exclude a compatibility duplicate for a malformed WordPress
-# slug; the slug's been fixed at the source (see README), so this is empty
-# now but left in place in case a similar hedge is ever needed again.
-EXCLUDE_ROUTES: set[str] = set()
+# Redirect stubs retired in favor of a stronger sibling article covering
+# the same topic -- kept on disk (meta-refresh + canonical) but not
+# listed in the sitemap since they're not meant to be indexed separately.
+EXCLUDE_ROUTES: set[str] = {
+    "/7-best-ai-tools-for-contract-review-lawyers-in-2025/",
+    "/7-best-legal-ai-chatbots-for-lawyers-in-september-2025-reviewed/",
+}
 
 
 def route_for(page: Path) -> str:

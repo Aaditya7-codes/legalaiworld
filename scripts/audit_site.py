@@ -17,10 +17,15 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://legalaiworld.com"
 EXCLUDE_DIRS = {"assets", "scripts", ".git"}
-# Was used to exclude a compatibility duplicate for a malformed WordPress
-# slug; the slug's been fixed at the source (see README), so this is empty
-# now but left in place in case a similar hedge is ever needed again.
-EXCLUDE_ROUTES: set[str] = set()
+# Redirect stubs: pages retired in favor of a stronger sibling article
+# covering the same topic (keyword cannibalization cleanup). These keep
+# their directory (so old links/bookmarks still resolve via meta-refresh
+# + canonical) but are excluded from full article-page checks and the
+# sitemap, since they're not meant to be indexed as separate pages.
+EXCLUDE_ROUTES: set[str] = {
+    "/7-best-ai-tools-for-contract-review-lawyers-in-2025/",
+    "/7-best-legal-ai-chatbots-for-lawyers-in-september-2025-reviewed/",
+}
 SCRIPT_RE = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.DOTALL)
 URL_RE = re.compile(r'(?:href|src)=["\']([^"\']+)["\']')
 REQUIRED_BLOGPOSTING_KEYS = ("author", "image", "publisher", "articleSection")
