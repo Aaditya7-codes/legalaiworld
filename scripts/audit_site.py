@@ -16,7 +16,18 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://legalaiworld.com"
-EXCLUDE_DIRS = {"assets", "scripts", ".git"}
+EXCLUDE_DIRS = {"assets", "scripts"}
+
+
+def is_site_page(path) -> bool:
+    """Skip anything under a dot-directory.
+
+    .git, .github and especially .claude/worktrees hold complete copies
+    of the site; without this the sitemap silently doubles and every
+    page looks like a canonical mismatch.
+    """
+    parts = path.relative_to(ROOT).parts
+    return not any(part.startswith(".") for part in parts) and parts[0] not in EXCLUDE_DIRS
 # Redirect stubs: pages retired in favor of a stronger sibling article
 # covering the same topic (keyword cannibalization cleanup). These keep
 # their directory (so old links/bookmarks still resolve via meta-refresh
@@ -72,7 +83,7 @@ def is_article_page(page: Path) -> bool:
 def main() -> int:
     all_pages = [
         p for p in ROOT.rglob("index.html")
-        if p.relative_to(ROOT).parts[0] not in EXCLUDE_DIRS and route_for(p) not in EXCLUDE_ROUTES
+        if is_site_page(p) and route_for(p) not in EXCLUDE_ROUTES
     ]
 
     sitemap_path = ROOT / "sitemap.xml"

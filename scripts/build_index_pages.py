@@ -61,6 +61,14 @@ CATEGORIES = {
 }
 
 
+BLURBS = {
+    "ai-tools": "Reviews and comparisons of the AI tools built for legal work \u2014 what they cost, what they actually do, and where they fall short.",
+    "legal-research": "AI-assisted legal research: platform comparisons, accuracy and hallucination findings, and how lawyers are using these tools day to day.",
+    "compliance": "The rules governing AI use in practice \u2014 bar ethics opinions, court orders, the EU AI Act, and what firms need in a written policy.",
+    "uncategorized": "Everything else worth reading.",
+}
+
+
 def read_meta(slug: str) -> dict:
     path = ROOT / slug / "index.html"
     html = path.read_text(encoding="utf-8")
@@ -70,18 +78,66 @@ def read_meta(slug: str) -> dict:
     date = date_match.group(2) if date_match else ""
     desc_match = re.search(r'<meta name="description" content="([^"]*)"', html)
     desc = desc_match.group(1) if desc_match else ""
-    return {"slug": slug, "title": title, "category": category, "date": date, "desc": desc}
+    img_match = re.search(r'<img class="featured-image" src="([^"]*)"', html)
+    image = img_match.group(1) if img_match else ""
+    return {"slug": slug, "title": title, "category": category, "date": date,
+            "desc": desc, "image": image}
 
 
-def card(article: dict) -> str:
+def plate_label(category: str) -> str:
+    """Label for the plate shown on articles with no hero image."""
+    return category.strip() or "LegalAIWorld"
+
+
+def trim(text: str, limit: int = 165) -> str:
+    """Shorten a meta description to a card dek without cutting mid-word."""
+    text = text.replace(" -- ", " &mdash; ")
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.\u2014-")
+    return cut + "&hellip;"
+
+
+def card(article: dict, lead: bool = False) -> str:
     href = "/" + article["slug"] + "/"
+    cls = "card card--lead" if lead else "card"
+
+    if article["image"]:
+        # The lead image is above the fold, so it must not be lazy-loaded.
+        loading = "eager" if lead else "lazy"
+        thumb = (
+            f'<span class="card-thumb">'
+            f'<img src="{article["image"]}" alt="" loading="{loading}" decoding="async">'
+            f'</span>'
+        )
+    else:
+        thumb = (
+            f'<span class="card-thumb card-thumb--placeholder">'
+            f'<img src="/assets/logo.svg" alt="" aria-hidden="true">'
+            f'<span aria-hidden="true">{plate_label(article["category"])}</span>'
+            f'</span>'
+        )
+
     return (
-        f'<a class="card" href="{href}">'
+        f'<a class="{cls}" href="{href}">'
+        f'{thumb}'
+        f'<span class="card-body">'
         f'<span class="eyebrow">{article["category"]}</span>'
         f'<h3>{article["title"]}</h3>'
-        f'<div class="foot">{article["date"]} &middot; Read article &rarr;</div>'
+        f'<p class="dek">{trim(article["desc"])}</p>'
+        f'<span class="foot">{article["date"]} &middot; Read article &rarr;</span>'
+        f'</span>'
         f'</a>'
     )
+
+
+def cards_html(articles: list, lead: bool = False) -> str:
+    """Render a grid, optionally promoting the newest article to a lead."""
+    if not articles:
+        return ""
+    if lead:
+        return "\n".join([card(articles[0], lead=True)] + [card(a) for a in articles[1:]])
+    return "\n".join(card(a) for a in articles)
 
 
 PAGE_TEMPLATE = """<!doctype html>
@@ -92,6 +148,9 @@ PAGE_TEMPLATE = """<!doctype html>
 <title>{title} - LegalAIWorld</title>
 <meta name="description" content="{description}">
 <link rel="canonical" href="https://legalaiworld.com/category/{slug}/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
@@ -107,7 +166,10 @@ PAGE_TEMPLATE = """<!doctype html>
 <section class="hero">
 <div class="eyebrow">Category</div>
 <h1>{label}</h1>
+<p class="meta">{blurb}</p>
 </section>
+<hr class="hero-rule">
+<div class="section-head"><h2>{count} articles</h2></div>
 <div class="card-grid">
 {cards}
 </div>
@@ -141,6 +203,9 @@ HOME_TEMPLATE = """<!doctype html>
 <title>LegalAIWorld - Your Guide to AI in Law</title>
 <meta name="description" content="Practical, no-hype coverage of AI tools for lawyers: legal AI chatbots, contract review software, compliance guidance, and legal research tools.">
 <link rel="canonical" href="https://legalaiworld.com/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
@@ -154,13 +219,19 @@ HOME_TEMPLATE = """<!doctype html>
 <main>
 <div class="container">
 <section class="hero">
-<div class="eyebrow">LegalAIWorld</div>
-<h1>Your Guide to AI in Law</h1>
-<p class="meta">Practical, no-hype coverage of AI tools for lawyers &mdash; legal AI chatbots, contract review software, compliance guidance, and legal research.</p>
-<p class="meta">Browse: <a href="/category/ai-tools/">AI Tools</a> &middot; <a href="/category/legal-research/">Legal Research</a> &middot; <a href="/category/compliance/">Compliance</a></p>
+<div class="eyebrow">Independent legal technology coverage</div>
+<h1>Your guide to AI in law</h1>
+<p class="meta">Practical, no-hype analysis of the tools lawyers actually use &mdash; legal AI chatbots, contract review software, research platforms and the compliance rules that govern them. Real pricing, verified against primary sources.</p>
+<div class="hero-actions">
+<a class="pill" href="/category/ai-tools/">AI Tools</a>
+<a class="pill" href="/category/legal-research/">Legal Research</a>
+<a class="pill" href="/category/compliance/">Compliance</a>
+<a class="pill" href="/about-us/">About</a>
+</div>
 </section>
+<hr class="hero-rule">
 
-<div class="section-head"><h2>Latest Articles</h2></div>
+<div class="section-head"><h2>Latest</h2></div>
 <div class="card-grid">
 {latest_cards}
 </div>
@@ -201,7 +272,9 @@ def main() -> None:
             description=f"{cat['label']} articles from LegalAIWorld.",
             slug=cat_slug,
             label=cat["label"],
-            cards="\n".join(card(a) for a in articles),
+            blurb=BLURBS.get(cat_slug, ""),
+            count=len(articles),
+            cards=cards_html(articles, lead=True),
         )
         (out_dir / "index.html").write_text(page, encoding="utf-8")
         print(f"Wrote category/{cat_slug}/index.html ({len(articles)} articles)")
@@ -213,7 +286,7 @@ def main() -> None:
             seen.add(a["slug"])
             deduped.append(a)
     deduped.sort(key=lambda a: a["date"], reverse=True)
-    home = HOME_TEMPLATE.format(latest_cards="\n".join(card(a) for a in deduped))
+    home = HOME_TEMPLATE.format(latest_cards=cards_html(deduped, lead=True))
     (ROOT / "index.html").write_text(home, encoding="utf-8")
     print(f"Wrote index.html ({len(all_articles)} articles)")
 

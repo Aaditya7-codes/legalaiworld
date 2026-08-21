@@ -7,7 +7,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://legalaiworld.com"
-EXCLUDE_DIRS = {"assets", "scripts", ".git"}
+EXCLUDE_DIRS = {"assets", "scripts"}
+
+
+def is_site_page(path) -> bool:
+    """Skip anything under a dot-directory.
+
+    .git, .github and especially .claude/worktrees hold complete copies
+    of the site; without this the sitemap silently doubles and every
+    page looks like a canonical mismatch.
+    """
+    parts = path.relative_to(ROOT).parts
+    return not any(part.startswith(".") for part in parts) and parts[0] not in EXCLUDE_DIRS
 # Redirect stubs retired in favor of a stronger sibling article covering
 # the same topic -- kept on disk (meta-refresh + canonical) but not
 # listed in the sitemap since they're not meant to be indexed separately.
@@ -29,7 +40,7 @@ def main() -> None:
         r for r in (
             route_for(p)
             for p in ROOT.rglob("index.html")
-            if p.relative_to(ROOT).parts[0] not in EXCLUDE_DIRS
+            if is_site_page(p)
         )
         if r not in EXCLUDE_ROUTES
     )
