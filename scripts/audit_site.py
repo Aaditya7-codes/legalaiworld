@@ -17,9 +17,10 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://legalaiworld.com"
 EXCLUDE_DIRS = {"assets", "scripts", ".git"}
-# Compatibility duplicate for a malformed WordPress slug (see README) --
-# same content as the percent-encoded canonical dir, not a real extra page.
-EXCLUDE_ROUTES = {"/law-firm-ai-policy-template-2025-a-2‑page-model-you-can-copy/"}
+# Was used to exclude a compatibility duplicate for a malformed WordPress
+# slug; the slug's been fixed at the source (see README), so this is empty
+# now but left in place in case a similar hedge is ever needed again.
+EXCLUDE_ROUTES: set[str] = set()
 SCRIPT_RE = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.DOTALL)
 URL_RE = re.compile(r'(?:href|src)=["\']([^"\']+)["\']')
 REQUIRED_BLOGPOSTING_KEYS = ("author", "image", "publisher", "articleSection")

@@ -47,7 +47,7 @@ CATEGORIES = {
         "slugs": [
             "using-chatgpt-or-claude-on-a-client-matter-a-federal-judge-just-issued-a-warning-every-lawyer-needs-to-hear",
             "what-is-agentic-ai-and-why-every-lawyer-needs-to-understand-it-before-2027",
-            "law-firm-ai-policy-template-2025-a-2%e2%80%91page-model-you-can-copy",
+            "law-firm-ai-policy-template-2025-a-2-page-model-you-can-copy",
         ],
     },
     "uncategorized": {

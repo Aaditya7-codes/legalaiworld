@@ -42,32 +42,30 @@ the correct URL back into all three places (the visible image, the
 the current live site's social-share previews, not a deviation from it,
 and has no bearing on Google Web-search rankings either way.
 
-## Known issue: one malformed slug, served two ways as a hedge
-`law-firm-ai-policy-template-2025-a-2%e2%80%91page-model-you-can-copy/` has a
-pre-existing WordPress bug: its slug (and the canonical URL WordPress itself
-declares) contains the literal characters `%e2%80%91` rather than an actual
-Unicode non-breaking hyphen. Google has indexed that exact literal string
-(it's what WP's own `<link rel="canonical">` declares), so the canonical
-tag, JSON-LD, and every internal link here keep using it as-is.
+## Resolved: the malformed slug is fixed at the source
+`law-firm-ai-policy-template-2025-a-2%e2%80%91page-model-you-can-copy/` used
+to have a pre-existing WordPress bug: its slug (and the canonical URL
+WordPress itself declared) contained the literal characters `%e2%80%91`
+rather than an actual Unicode non-breaking hyphen.
 
-But the audit script caught a real problem with that: a standard web
-server decodes `%XX` sequences in the request path before looking up a
-file, so a browser/crawler requesting that URL will actually look for a
-directory containing the literal Unicode hyphen (`‑`), not the literal
-percent-encoded string. Both directories exist here with identical
-content as a hedge — `law-firm-ai-policy-template-2025-a-2‑page-model-you-can-copy/`
-is a compatibility duplicate, excluded from the sitemap and from
-`audit_site.py`'s page count (see `EXCLUDE_ROUTES` in both scripts) so
-it isn't treated as a second real page.
+Before fixing it at the source, this was verified live against GitHub
+Pages (2026-08-20): temporarily removed `CNAME`, pushed, and curled the
+raw `aaditya7-codes.github.io/legalaiworld/` URL directly — both the
+percent-encoded and the decoded-Unicode variant resolved with HTTP 200
+and the correct article title, alongside the homepage, a normal article,
+a category page, a self-hosted image, and `sitemap.xml`, also all 200.
+`CNAME` restored immediately after.
 
-**Verified live against GitHub Pages (2026-08-20):** temporarily removed
-`CNAME`, pushed, and curled the raw `aaditya7-codes.github.io/legalaiworld/`
-URL directly. Both the percent-encoded and the decoded-Unicode variant
-resolve with HTTP 200 and the correct article title — so the hedge
-works and either form of the URL will serve real content once cut over.
-Also spot-checked the homepage, a normal article, a category page, a
-self-hosted image, and `sitemap.xml` — all 200. `CNAME` restored
-immediately after.
+Since the article had **zero indexing/ranking to protect** (it was one
+of the "crawled — currently not indexed" pages), the safer permanent fix
+was to correct the slug directly in WordPress rather than carry the
+hedge forward indefinitely. Fixed via the block editor's Permalink field
+to the clean `law-firm-ai-policy-template-2025-a-2-page-model-you-can-copy`
+— verified live via the REST API: the new URL returns 200 and its own
+`<link rel="canonical">` now matches. The static repo has been
+re-migrated to match, and the old percent-encoded/decoded-Unicode hedge
+directories have been removed. Next: request re-indexing on the new URL
+via GSC's URL Inspection tool.
 
 ## CI
 `.github/workflows/site-audit.yml` runs `scripts/audit_site.py` on every
