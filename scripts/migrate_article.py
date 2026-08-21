@@ -7,6 +7,7 @@ Article JSON-LD so the migration does not reset search rankings.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -14,6 +15,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
+from PIL import Image
 
 SITE = "https://legalaiworld.com"
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,22 +104,45 @@ def fetch(slug: str) -> tuple[dict, str]:
 
 FALLBACK_IMAGE_NAME = "cropped-Screenshot-2025-08-15-at-4.15.25-PM.png"
 IMAGES_DIR = ROOT / "assets" / "images"
+MAX_IMAGE_WIDTH = 1200
+JPEG_QUALITY = 84
 
 
 def localize_image(url: str) -> str:
-    """Download a wp-content image (if not already local) and return the
+    """Download a wp-content image (if not already local), resize it to
+    a max width and re-encode as JPEG for page speed, and return the
     self-hosted URL. Leaves non-wp-content URLs untouched."""
     if "/wp-content/uploads/" not in url:
         return url
     filename = url.rsplit("/", 1)[-1]
     if filename == FALLBACK_IMAGE_NAME:
         return f"{SITE}/assets/social-fallback.png"
+    jpg_name = Path(filename).with_suffix(".jpg").name
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-    local_path = IMAGES_DIR / filename
+    local_path = IMAGES_DIR / jpg_name
     if not local_path.exists():
         with urlopen(url, timeout=30) as resp:
-            local_path.write_bytes(resp.read())
-    return f"{SITE}/assets/images/{filename}"
+            raw = resp.read()
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        w, h = im.size
+        if w > MAX_IMAGE_WIDTH:
+            h = round(h * MAX_IMAGE_WIDTH / w)
+            w = MAX_IMAGE_WIDTH
+            im = im.resize((w, h), Image.LANCZOS)
+        im.save(local_path, "JPEG", quality=JPEG_QUALITY, optimize=True)
+    return f"{SITE}/assets/images/{jpg_name}"
+
+
+def image_dimensions(url: str) -> tuple[int, int] | None:
+    """Read back the actual (possibly resized) dimensions of a localized
+    image, so JSON-LD width/height can be kept in sync."""
+    if "/assets/images/" not in url:
+        return None
+    local_path = IMAGES_DIR / url.rsplit("/", 1)[-1]
+    if not local_path.exists():
+        return None
+    with Image.open(local_path) as im:
+        return im.size
 
 
 def extract(post: dict, html: str) -> dict:
@@ -149,8 +174,17 @@ def extract(post: dict, html: str) -> dict:
     jsonld_raw = ld_match.group(1).strip() if ld_match else "{}"
     # Rewrite any wp-content image URLs embedded in the JSON-LD (escaped-slash form)
     for wp_url in set(re.findall(r'https:\\/\\/legalaiworld\.com\\/wp-content\\/uploads\\/[^"\s]*?\.(?:png|jpg|jpeg|webp|gif)', jsonld_raw)):
-        localized = localize_image(wp_url.replace("\\/", "/")).replace("/", "\\/")
-        jsonld_raw = jsonld_raw.replace(wp_url, localized)
+        localized = localize_image(wp_url.replace("\\/", "/"))
+        dims = image_dimensions(localized)
+        jsonld_raw = jsonld_raw.replace(wp_url, localized.replace("/", "\\/"))
+        if dims:
+            w, h = dims
+            fname_escaped = re.escape(localized.rsplit("/", 1)[-1])
+            jsonld_raw = re.sub(
+                rf'({fname_escaped}"(?:,"@id":"[^"]*")?,"width":)\d+(,"height":)\d+',
+                rf"\g<1>{w}\g<2>{h}",
+                jsonld_raw,
+            )
 
     content_el = soup.find(class_="entry-content")
     content_html = str(content_el) if content_el else ""
