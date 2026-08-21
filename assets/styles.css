@@ -92,6 +92,34 @@ a:hover { text-decoration: underline; }
 .entry-content img { max-width: 100%; height: auto; border-radius: 6px; }
 .entry-content strong { color: var(--ink); }
 
+/* Comparison tables. Wide pricing/feature tables must scroll inside
+   their own box rather than forcing the page to scroll sideways on
+   mobile, which is where this site's best CTR comes from. */
+.entry-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 28px;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.entry-content thead th {
+  background: var(--bg-alt);
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink);
+}
+.entry-content th,
+.entry-content td {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  vertical-align: top;
+}
+.entry-content tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-alt) 45%, transparent); }
+.entry-content figure.wp-block-table { margin: 0 0 28px; }
+.entry-content figure.wp-block-table table { margin-bottom: 0; }
+
+
 .disclosure-note {
   font-family: -apple-system, "Segoe UI", sans-serif;
   font-size: 0.82rem;
@@ -133,6 +161,8 @@ a:hover { text-decoration: underline; }
 .footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 
 @media (max-width: 640px) {
+  .entry-content table { display: block; overflow-x: auto; white-space: nowrap; }
+  .entry-content td, .entry-content th { white-space: normal; min-width: 130px; }
   .main-nav { display: none; }
   .hero h1 { font-size: 1.6rem; }
   .article h1 { font-size: 1.6rem; }

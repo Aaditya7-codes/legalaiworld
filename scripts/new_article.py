@@ -63,7 +63,7 @@ TEMPLATE = """<!doctype html>
 <main class="article">
 <div class="article-container">
 <h1>{title}</h1>
-<div class="meta"><span class="eyebrow">{category}</span> &middot; {date}</div>
+<div class="meta"><span class="eyebrow">{category}</span> &middot; {date}{updated}</div>
 {featured_image}
 {disclosure}
 <div class="entry-content">
@@ -137,7 +137,11 @@ def _breadcrumb(slug: str, title: str, category: str) -> dict:
 def build_jsonld(
     *, slug: str, title: str, description: str, category: str, date_iso: str,
     image_url: str | None, image_w: int | None, image_h: int | None,
+    date_modified_iso: str | None = None,
 ) -> str:
+    # A refreshed article keeps its original datePublished (that's the URL's
+    # ranking history) but advertises a new dateModified.
+    mod_iso = date_modified_iso or date_iso
     page_url = f"{SITE}/{slug}/"
     author_ref = {"@id": f"{AUTHOR_URL}#author"}
     org_ref = {"@id": f"{SITE}/#organization"}
@@ -168,7 +172,7 @@ def build_jsonld(
         "publisher": org_ref,
         "image": blogposting_image,
         "datePublished": date_iso,
-        "dateModified": date_iso,
+        "dateModified": mod_iso,
         "inLanguage": "en-US",
         "mainEntityOfPage": {"@id": f"{page_url}#webpage"},
         "isPartOf": {"@id": f"{page_url}#webpage"},
@@ -213,7 +217,7 @@ def build_jsonld(
         "creator": author_ref,
         **webpage_extra,
         "datePublished": date_iso,
-        "dateModified": date_iso,
+        "dateModified": mod_iso,
     }
 
     website = {
@@ -234,8 +238,10 @@ def write_article(
     *, slug: str, title: str, description: str, category: str, date: str,
     content_html: str, affiliate: bool = False,
     image_filename: str | None = None,
+    date_modified: str | None = None,
 ) -> Path:
     date_iso = f"{date}T09:00:00+00:00"
+    date_modified_iso = f"{date_modified}T09:00:00+00:00" if date_modified else None
     image_url = image_w = image_h = None
     featured_image_tag = ""
     og_image = FALLBACK_IMAGE
@@ -255,10 +261,16 @@ def write_article(
     jsonld = build_jsonld(
         slug=slug, title=title, description=description, category=category,
         date_iso=date_iso, image_url=image_url, image_w=image_w, image_h=image_h,
+        date_modified_iso=date_modified_iso,
     )
+
+    # Show the refresh date in the byline too -- a reader skimming a
+    # "best tools in <year>" page judges freshness before reading a word.
+    updated = f" &middot; Updated {date_modified}" if date_modified else ""
 
     page = TEMPLATE.format(
         title=title,
+        updated=updated,
         description=description.replace('"', "&quot;"),
         canonical=f"{SITE}/{slug}/",
         og_image=og_image,
