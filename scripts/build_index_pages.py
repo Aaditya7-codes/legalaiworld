@@ -29,6 +29,8 @@ CATEGORIES = {
             "legal-tech-startups-to-watch-in-2025-the-ai-tools-raising-millions",
             "10-best-ai-tools-for-legal-research-in-2025",
             "7-best-ai-tools-for-contract-review-lawyers-in-2025",
+            "clio-duo-review-2026-features-pricing-is-it-worth-it",
+            "best-ai-billing-time-tracking-tools-for-law-firms-2026",
         ],
     },
     "legal-research": {
@@ -48,6 +50,7 @@ CATEGORIES = {
             "using-chatgpt-or-claude-on-a-client-matter-a-federal-judge-just-issued-a-warning-every-lawyer-needs-to-hear",
             "what-is-agentic-ai-and-why-every-lawyer-needs-to-understand-it-before-2027",
             "law-firm-ai-policy-template-2025-a-2-page-model-you-can-copy",
+            "state-bar-ai-ethics-opinions-guide-for-lawyers",
         ],
     },
     "uncategorized": {
